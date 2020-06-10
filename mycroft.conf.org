@@ -1,0 +1,9 @@
+{
+  "enclosure": {
+    "platform": "picroft"
+  },
+  "max_allowed_core_version": 20.2,
+  "listener": {
+    "device_name": "pulse"
+  }
+}

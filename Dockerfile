@@ -7,7 +7,7 @@ ENV DEBIAN_FRONTEND noninteractive
 RUN set -x \
 	&& sed -i 's/# \(.*multiverse$\)/\1/g' /etc/apt/sources.list \
 	&& apt-get update \
-	&& apt-get -y install git python3 python3-pip locales sudo \
+	&& apt-get -y install git python3 python3-pip locales sudo python3-rpi.gpio \
 	&& pip3 install future msm \
 	# Checkout Mycroft
 	&& git clone https://github.com/MycroftAI/mycroft-core.git /opt/mycroft \
@@ -20,6 +20,14 @@ RUN set -x \
 	&& touch /opt/mycroft/scripts/logs/mycroft-voice.log \
 	&& touch /opt/mycroft/scripts/logs/mycroft-skills.log \
 	&& touch /opt/mycroft/scripts/logs/mycroft-audio.log \
+	&& /usr/local/bin/msm install https://github.com/dony71/respeaker-2mic-hat-skill.git \
+	&& /usr/local/bin/msm install https://github.com/dony71/rpi-gpio-skill.git \
+	&& groupadd gpio \
+	&& usermod -a -G gpio root \
+	&& groupadd i2c \
+	&& usermod -a -G i2c root \
+	&& groupadd spi \
+	&& usermod -a -G spi root \
 	&& apt-get -y autoremove \
 	&& apt-get clean \
 	&& rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*
@@ -36,7 +44,9 @@ ENV LC_ALL en_US.UTF-8
 
 WORKDIR /opt/mycroft
 COPY startup.sh /opt/mycroft
+COPY 99-com.rules /etc/udev/rules.d
 ENV PYTHONPATH $PYTHONPATH:/mycroft/ai
+USER 1001:1001
 
 RUN echo "PATH=$PATH:/opt/mycroft/bin" >> $HOME/.bashrc \
         && echo "source /opt/mycroft/.venv/bin/activate" >> $HOME/.bashrc

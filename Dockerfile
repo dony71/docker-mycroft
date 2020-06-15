@@ -7,7 +7,7 @@ ENV DEBIAN_FRONTEND noninteractive
 RUN set -x \
 	&& sed -i 's/# \(.*multiverse$\)/\1/g' /etc/apt/sources.list \
 	&& apt-get update \
-	&& apt-get -y install git python3 python3-pip locales sudo python3-rpi.gpio \
+	&& apt-get -y install git python3 python3-pip locales sudo vim python3-rpi.gpio \
 	&& pip3 install future msm \
 	# Checkout Mycroft
 	&& git clone https://github.com/MycroftAI/mycroft-core.git /opt/mycroft \
@@ -22,12 +22,6 @@ RUN set -x \
 	&& touch /opt/mycroft/scripts/logs/mycroft-audio.log \
 	&& /usr/local/bin/msm install https://github.com/dony71/respeaker-2mic-hat-skill.git \
 	&& /usr/local/bin/msm install https://github.com/dony71/rpi-gpio-skill.git \
-	&& groupadd gpio \
-	&& usermod -a -G gpio root \
-	&& groupadd i2c \
-	&& usermod -a -G i2c root \
-	&& groupadd spi \
-	&& usermod -a -G spi root \
 	&& apt-get -y autoremove \
 	&& apt-get clean \
 	&& rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*
@@ -42,18 +36,28 @@ ENV LANG en_US.UTF-8
 ENV LANGUAGE en_US:en
 ENV LC_ALL en_US.UTF-8
 
+# Create user and group
+RUN addgroup --system --gid 370 gpio
+RUN addgroup --system --gid 371 i2c
+RUN addgroup --system --gid 372 spi
+RUN addgroup --gid 1001 pi
+RUN adduser --disabled-password --gecos '' --uid 1001 --gid 1001 pi
+RUN usermod -G pi,gpio,i2c,spi pi
+
 WORKDIR /opt/mycroft
 COPY startup.sh /opt/mycroft
+RUN chown -R pi:pi /opt/mycroft
 COPY 99-com.rules /etc/udev/rules.d
 ENV PYTHONPATH $PYTHONPATH:/mycroft/ai
-USER 1001:1001
-
-RUN echo "PATH=$PATH:/opt/mycroft/bin" >> $HOME/.bashrc \
-        && echo "source /opt/mycroft/.venv/bin/activate" >> $HOME/.bashrc
 
 RUN chmod +x /opt/mycroft/start-mycroft.sh \
 	&& chmod +x /opt/mycroft/startup.sh
 
 EXPOSE 8181
+
+USER pi
+
+RUN echo "PATH=$PATH:/opt/mycroft/bin" >> $HOME/.bashrc \
+        && echo "source /opt/mycroft/.venv/bin/activate" >> $HOME/.bashrc
 
 ENTRYPOINT "/opt/mycroft/startup.sh"
